@@ -1,5 +1,10 @@
 package ro.mihai.careerhub.dto.response;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Setter
+@Getter
 public class CompanyResponse {
 
     private Long id;
@@ -15,21 +20,5 @@ public class CompanyResponse {
         this.name = name;
         this.city = city;
         this.website = website;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getCity() {
-        return city;
-    }
-
-    public String getWebsite() {
-        return website;
     }
 }

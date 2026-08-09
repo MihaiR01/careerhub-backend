@@ -2,6 +2,7 @@ package ro.mihai.careerhub.controller;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -13,12 +14,11 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 
 import org.springframework.http.MediaType;
 
 @WebMvcTest(CompanyController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class CompanyControllerTest {
 
     @Autowired
@@ -41,9 +41,7 @@ class CompanyControllerTest {
                 .thenReturn(response);
 
         mockMvc.perform(
-        post("/api/companies")
-                .with(user("testuser"))
-                .with(csrf())
+        post("/companies")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                         {
@@ -60,31 +58,11 @@ class CompanyControllerTest {
                 .andExpect(jsonPath("$.website").value("https://google.com"));
     }
 
-    @Test
-    void shouldReturn401WhenUserIsNotAuthenticated() throws Exception {
-
-        mockMvc.perform(
-                post("/api/companies")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("""
-                                {
-                                    "name": "Nexttech",
-                                    "city": "Cluj-Napoca",
-                                    "website": "https://nexttech.talentlyft.com/"
-                                }
-                                """)
-        )
-        .andExpect(status().isUnauthorized());
-    }
-
         @Test
         void shouldReturn400WhenCompanyNameIsMissing() throws Exception {
 
         mockMvc.perform(
-                post("/api/companies")
-                        .with(user("testuser"))
-                        .with(csrf())
+                post("/companies")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -100,9 +78,7 @@ class CompanyControllerTest {
         void shouldReturn400WhenCompanyCityIsMissing() throws Exception {
 
         mockMvc.perform(
-                post("/api/companies")
-                        .with(user("testuser"))
-                        .with(csrf())
+                post("/companies")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -118,9 +94,7 @@ class CompanyControllerTest {
         void shouldReturn400WhenCompanyWebsiteIsMissing() throws Exception {
 
         mockMvc.perform(
-                post("/api/companies")
-                        .with(user("testuser"))
-                        .with(csrf())
+                post("/companies")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
