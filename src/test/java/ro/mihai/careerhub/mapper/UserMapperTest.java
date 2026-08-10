@@ -6,7 +6,8 @@ import ro.mihai.careerhub.entity.User;
 import ro.mihai.careerhub.dto.response.UserResponse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+
+import java.time.LocalDateTime;
 
 class UserMapperTest {
 
@@ -15,22 +16,25 @@ class UserMapperTest {
     @Test
     void shouldMapUserToResponse() {
 
+        LocalDateTime createdate =
+                LocalDateTime.of(2026, 8, 10, 20, 30);
+
         User user = new User(
                 "Mihai",
                 "Oprea",
-                "mihai@testexample.com",
-                "password123",
-                "0712345678"
+                "mihai.mapper@example.com",
+                "password",
+                "0770123456"
         );
+
+        user.setCreatedate(createdate);
 
         UserResponse response = userMapper.toResponse(user);
 
         assertEquals("Mihai", response.getFirstname());
         assertEquals("Oprea", response.getLastname());
-        assertEquals(
-                "mihai@testexample.com",
-                response.getEmail()
-        );
-        assertEquals("0712345678", response.getPhonenumber());
+        assertEquals("mihai.mapper@example.com", response.getEmail());
+        assertEquals("0770123456", response.getPhonenumber());
+        assertEquals(createdate, response.getCreatedate());
     }
 }

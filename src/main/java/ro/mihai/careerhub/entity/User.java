@@ -11,7 +11,6 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
-import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -61,9 +60,5 @@ public class User {
     @PrePersist
     protected void onCreate() {
         createdate = LocalDateTime.now();
-    }
-
-    public LocalDateTime getCreatedate() {
-        return createdate;
     }
 }

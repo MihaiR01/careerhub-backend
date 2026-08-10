@@ -1,10 +1,13 @@
 package ro.mihai.careerhub.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import ro.mihai.careerhub.dto.request.CreateCompanyRequest;
 import ro.mihai.careerhub.dto.response.CompanyResponse;
 import ro.mihai.careerhub.entity.Company;
+import ro.mihai.careerhub.exception.CompanyNotFoundException;
 import ro.mihai.careerhub.mapper.CompanyMapper;
 import ro.mihai.careerhub.repository.CompanyRepository;
 
@@ -35,4 +38,20 @@ public class CompanyService {
         return companyMapper.toResponse(savedCompany);
     }
 
+    public List<CompanyResponse> getAllCompanies() {
+
+        return companyRepository.findAll()
+                .stream()
+                .map(companyMapper::toResponse)
+                .toList();
+    }
+
+    public CompanyResponse getCompanyById(Long id) {
+
+        Company company = companyRepository
+                .findById(id)
+                .orElseThrow(() -> new CompanyNotFoundException(id));
+
+        return companyMapper.toResponse(company);
+    }
 }

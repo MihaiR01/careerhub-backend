@@ -1,9 +1,9 @@
 package ro.mihai.careerhub.dto.response;
 
 import lombok.Getter;
-import lombok.Setter;
 
-@Setter
+import java.time.LocalDateTime;
+
 @Getter
 public class UserResponse {
 
@@ -12,18 +12,21 @@ public class UserResponse {
     private String lastname;
     private String email;
     private String phonenumber;
+    private LocalDateTime createdate;
 
     public UserResponse(
             Long id,
             String firstname,
             String lastname,
             String email,
-            String phonenumber) {
+            String phonenumber,
+            LocalDateTime createdate) {
 
         this.id = id;
         this.firstname = firstname;
         this.lastname = lastname;
         this.email = email;
         this.phonenumber = phonenumber;
+        this.createdate = createdate;
     }
 }
