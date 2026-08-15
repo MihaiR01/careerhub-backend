@@ -27,4 +27,14 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.NOT_FOUND)
                 .body(exception.getMessage());
     }
+
+    @ExceptionHandler(JobApplicationNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public void handleJobApplicationNotFound() {
+    }
+
+    @ExceptionHandler(InvalidApplicationStatusTransitionException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public void handleInvalidApplicationStatusTransition() {
+    }
 }
