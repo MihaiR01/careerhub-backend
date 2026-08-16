@@ -8,7 +8,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.context.annotation.Import;
 
+import ro.mihai.careerhub.TestcontainersConfiguration;
 import ro.mihai.careerhub.entity.Company;
 import ro.mihai.careerhub.entity.Job;
 import ro.mihai.careerhub.entity.JobApplication;
@@ -22,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @AutoConfigureTestDatabase(
         replace = AutoConfigureTestDatabase.Replace.NONE
 )
+@Import(TestcontainersConfiguration.class)
 class JobApplicationRepositoryTest {
 
     @Autowired
