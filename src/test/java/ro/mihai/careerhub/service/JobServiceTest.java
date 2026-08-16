@@ -1,9 +1,18 @@
 package ro.mihai.careerhub.service;
 
+import java.util.List;
+import java.util.Optional;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 
 import ro.mihai.careerhub.dto.request.CreateJobRequest;
 import ro.mihai.careerhub.dto.response.JobResponse;
@@ -16,12 +25,10 @@ import ro.mihai.careerhub.mapper.JobMapper;
 import ro.mihai.careerhub.repository.CompanyRepository;
 import ro.mihai.careerhub.repository.JobRepository;
 
-import java.util.List;
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 class JobServiceTest {
@@ -96,35 +103,24 @@ class JobServiceTest {
         JobResponse result =
                 jobService.createJob(request);
 
-        assertEquals(
-                1L,
-                result.getId()
-        );
-
+        assertEquals(1L, result.getId());
         assertEquals(
                 "Java Backend Developer",
                 result.getTitle()
         );
-
         assertEquals(
                 "Java, Spring Boot, PostgreSQL",
                 result.getTechnologies()
         );
-
         assertEquals(
                 "Bucharest",
                 result.getLocation()
         );
-
         assertEquals(
                 EmploymentType.FULL_TIME,
                 result.getEmploymentType()
         );
-
-        assertEquals(
-                1L,
-                result.getCompanyId()
-        );
+        assertEquals(1L, result.getCompanyId());
 
         verify(companyRepository).findById(1L);
         verify(jobRepository).save(any(Job.class));
@@ -132,34 +128,63 @@ class JobServiceTest {
     }
 
     @Test
-    void shouldGetAllJobs() {
+    void shouldThrowCompanyNotFoundExceptionWhenCreatingJob() {
+
+        CreateJobRequest request = new CreateJobRequest();
+
+        request.setTitle("Java Backend Developer");
+        request.setTechnologies("Java, Spring Boot");
+        request.setLocation("Bucharest");
+        request.setEmploymentType(EmploymentType.FULL_TIME);
+        request.setCompanyId(999L);
+
+        when(companyRepository.findById(999L))
+                .thenReturn(Optional.empty());
+
+        assertThrows(
+                CompanyNotFoundException.class,
+                () -> jobService.createJob(request)
+        );
+
+        verify(companyRepository).findById(999L);
+
+        verify(
+                jobRepository,
+                never()
+        ).save(any(Job.class));
+
+        verifyNoInteractions(jobMapper);
+    }
+
+    @Test
+    void shouldGetJobsWithFiltersAndPagination() {
 
         Company company = new Company(
-                "Nexttech",
-                "Cluj-Napoca",
-                "https://www.nexttech.ro"
+                "Google",
+                "Bucharest",
+                "https://google.com"
         );
 
         Job job1 = new Job(
                 "Java Backend Developer",
-                "Java, Spring Boot, PostgreSQL",
+                "Java, Spring Boot",
                 "Cluj-Napoca",
                 EmploymentType.FULL_TIME,
                 company
         );
 
         Job job2 = new Job(
-                "C++ Developer",
-                "C++, Linux, Git",
-                "Bucharest",
-                EmploymentType.FULL_TIME,
+                "Java Intern",
+                "Java, Spring Boot",
+                "Cluj-Napoca",
+                EmploymentType.INTERNSHIP,
                 company
         );
 
         JobResponse response1 = new JobResponse(
                 1L,
                 "Java Backend Developer",
-                "Java, Spring Boot, PostgreSQL",
+                "Java, Spring Boot",
                 "Cluj-Napoca",
                 EmploymentType.FULL_TIME,
                 null,
@@ -168,16 +193,33 @@ class JobServiceTest {
 
         JobResponse response2 = new JobResponse(
                 2L,
-                "C++ Developer",
-                "C++, Linux, Git",
-                "Bucharest",
-                EmploymentType.FULL_TIME,
+                "Java Intern",
+                "Java, Spring Boot",
+                "Cluj-Napoca",
+                EmploymentType.INTERNSHIP,
                 null,
                 1L
         );
 
-        when(jobRepository.findAll())
-                .thenReturn(List.of(job1, job2));
+        Pageable pageable = PageRequest.of(
+                0,
+                10,
+                Sort.by("title").ascending()
+        );
+
+        Page<Job> page = new PageImpl<>(
+                List.of(job1, job2),
+                pageable,
+                2
+        );
+
+        when(
+                jobRepository.findAll(
+                        any(Specification.class),
+                        eq(pageable)
+                )
+        )
+                .thenReturn(page);
 
         when(jobMapper.toResponse(job1))
                 .thenReturn(response1);
@@ -185,59 +227,158 @@ class JobServiceTest {
         when(jobMapper.toResponse(job2))
                 .thenReturn(response2);
 
-        List<JobResponse> result =
-                jobService.getAllJobs();
+        Page<JobResponse> result =
+                jobService.getJobs(
+                        "Cluj-Napoca",
+                        null,
+                        "Java",
+                        pageable
+                );
 
-        assertEquals(2, result.size());
+        assertEquals(2, result.getContent().size());
+        assertEquals(2, result.getTotalElements());
+        assertEquals(1, result.getTotalPages());
+        assertEquals(0, result.getNumber());
+        assertEquals(10, result.getSize());
 
         assertEquals(
                 "Java Backend Developer",
-                result.get(0).getTitle()
+                result.getContent().get(0).getTitle()
         );
 
         assertEquals(
-                "C++ Developer",
-                result.get(1).getTitle()
+                "Java Intern",
+                result.getContent().get(1).getTitle()
         );
 
-        assertEquals(
-                "Cluj-Napoca",
-                result.get(0).getLocation()
+        verify(jobRepository).findAll(
+                any(Specification.class),
+                eq(pageable)
         );
 
-        assertEquals(
-                "Bucharest",
-                result.get(1).getLocation()
-        );
-
-        assertEquals(
-                EmploymentType.FULL_TIME,
-                result.get(0).getEmploymentType()
-        );
-
-        assertEquals(
-                EmploymentType.FULL_TIME,
-                result.get(1).getEmploymentType()
-        );
-
-        verify(jobRepository).findAll();
         verify(jobMapper).toResponse(job1);
         verify(jobMapper).toResponse(job2);
     }
 
     @Test
-    void shouldReturnEmptyListWhenThereAreNoJobs() {
+    void shouldReturnEmptyPageWhenNoJobsMatchFilters() {
 
-        when(jobRepository.findAll())
-                .thenReturn(List.of());
+        Pageable pageable = PageRequest.of(0, 10);
 
-        List<JobResponse> result =
-                jobService.getAllJobs();
+        Page<Job> emptyPage = new PageImpl<>(
+                List.of(),
+                pageable,
+                0
+        );
 
-        assertEquals(0, result.size());
+        when(
+                jobRepository.findAll(
+                        any(Specification.class),
+                        eq(pageable)
+                )
+        )
+                .thenReturn(emptyPage);
 
-        verify(jobRepository).findAll();
+        Page<JobResponse> result =
+                jobService.getJobs(
+                        "Cluj-Napoca",
+                        EmploymentType.FULL_TIME,
+                        "Rust",
+                        pageable
+                );
+
+        assertEquals(0, result.getContent().size());
+        assertEquals(0, result.getTotalElements());
+        assertEquals(0, result.getTotalPages());
+
+        verify(jobRepository).findAll(
+                any(Specification.class),
+                eq(pageable)
+        );
+
         verifyNoInteractions(jobMapper);
+    }
+
+    @Test
+    void shouldPaginateJobs() {
+
+        Company company = new Company(
+                "Google",
+                "Bucharest",
+                "https://google.com"
+        );
+
+        Job job1 = new Job(
+                "Java Developer 1",
+                "Java, Spring Boot",
+                "Cluj-Napoca",
+                EmploymentType.FULL_TIME,
+                company
+        );
+
+        Job job2 = new Job(
+                "Java Developer 2",
+                "Java, Spring Boot",
+                "Cluj-Napoca",
+                EmploymentType.FULL_TIME,
+                company
+        );
+
+        JobResponse response1 = new JobResponse(
+                1L,
+                "Java Developer 1",
+                "Java, Spring Boot",
+                "Cluj-Napoca",
+                EmploymentType.FULL_TIME,
+                null,
+                1L
+        );
+
+        JobResponse response2 = new JobResponse(
+                2L,
+                "Java Developer 2",
+                "Java, Spring Boot",
+                "Cluj-Napoca",
+                EmploymentType.FULL_TIME,
+                null,
+                1L
+        );
+
+        Pageable pageable = PageRequest.of(1, 2);
+
+        Page<Job> page = new PageImpl<>(
+                List.of(job1, job2),
+                pageable,
+                5
+        );
+
+        when(
+                jobRepository.findAll(
+                        any(Specification.class),
+                        eq(pageable)
+                )
+        )
+                .thenReturn(page);
+
+        when(jobMapper.toResponse(job1))
+                .thenReturn(response1);
+
+        when(jobMapper.toResponse(job2))
+                .thenReturn(response2);
+
+        Page<JobResponse> result =
+                jobService.getJobs(
+                        null,
+                        null,
+                        null,
+                        pageable
+                );
+
+        assertEquals(2, result.getContent().size());
+        assertEquals(5, result.getTotalElements());
+        assertEquals(3, result.getTotalPages());
+        assertEquals(1, result.getNumber());
+        assertEquals(2, result.getSize());
     }
 
     @Test
@@ -276,35 +417,24 @@ class JobServiceTest {
         JobResponse result =
                 jobService.getJobById(1L);
 
-        assertEquals(
-                1L,
-                result.getId()
-        );
-
+        assertEquals(1L, result.getId());
         assertEquals(
                 "Java Backend Developer",
                 result.getTitle()
         );
-
         assertEquals(
                 "Java, Spring Boot, PostgreSQL",
                 result.getTechnologies()
         );
-
         assertEquals(
                 "Cluj-Napoca",
                 result.getLocation()
         );
-
         assertEquals(
                 EmploymentType.FULL_TIME,
                 result.getEmploymentType()
         );
-
-        assertEquals(
-                1L,
-                result.getCompanyId()
-        );
+        assertEquals(1L, result.getCompanyId());
 
         verify(jobRepository).findById(1L);
         verify(jobMapper).toResponse(job);
@@ -322,33 +452,6 @@ class JobServiceTest {
         );
 
         verify(jobRepository).findById(999L);
-        verifyNoInteractions(jobMapper);
-    }
-
-    @Test
-    void shouldThrowCompanyNotFoundExceptionWhenCreatingJob() {
-
-        CreateJobRequest request = new CreateJobRequest();
-
-        request.setTitle("Java Backend Developer");
-        request.setTechnologies("Java, Spring Boot");
-        request.setLocation("Bucharest");
-        request.setEmploymentType(EmploymentType.FULL_TIME);
-        request.setCompanyId(999L);
-
-        when(companyRepository.findById(999L))
-                .thenReturn(Optional.empty());
-
-        assertThrows(
-                CompanyNotFoundException.class,
-                () -> jobService.createJob(request)
-        );
-
-        verify(companyRepository).findById(999L);
-
-        verify(jobRepository, never())
-                .save(any(Job.class));
-
         verifyNoInteractions(jobMapper);
     }
 }

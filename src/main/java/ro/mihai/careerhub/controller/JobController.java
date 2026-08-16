@@ -2,7 +2,8 @@ package ro.mihai.careerhub.controller;
 
 import jakarta.validation.Valid;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import ro.mihai.careerhub.dto.request.CreateJobRequest;
 import ro.mihai.careerhub.dto.response.JobResponse;
+import ro.mihai.careerhub.enums.EmploymentType;
 import ro.mihai.careerhub.service.JobService;
 
 @RestController
@@ -34,10 +36,19 @@ public class JobController {
     }
 
     @GetMapping
-    public ResponseEntity<List<JobResponse>> getAllJobs() {
+    public ResponseEntity<Page<JobResponse>> getJobs(
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) EmploymentType employmentType,
+            @RequestParam(required = false) String technologies,
+            Pageable pageable) {
 
         return ResponseEntity.ok(
-                jobService.getAllJobs()
+                jobService.getJobs(
+                        location,
+                        employmentType,
+                        technologies,
+                        pageable
+                )
         );
     }
 

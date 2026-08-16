@@ -2,6 +2,8 @@ package ro.mihai.careerhub.service;
 
 import java.util.List;
 
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import ro.mihai.careerhub.dto.request.CreateUserRequest;
@@ -17,13 +19,16 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
 
     public UserService(
             UserRepository userRepository,
-            UserMapper userMapper) {
+            UserMapper userMapper,
+            PasswordEncoder passwordEncoder) {
 
         this.userRepository = userRepository;
         this.userMapper = userMapper;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public UserResponse createUser(CreateUserRequest request) {
@@ -32,7 +37,9 @@ public class UserService {
                 request.getFirstname(),
                 request.getLastname(),
                 request.getEmail(),
-                request.getPassword(),
+                passwordEncoder.encode(
+                        request.getPassword()
+                ),
                 request.getPhonenumber()
         );
 
@@ -49,37 +56,91 @@ public class UserService {
                 .toList();
     }
 
-    public UserResponse getUserById(Long id) {
+    public UserResponse getUserById(
+            Long id,
+            String currentEmail,
+            boolean isAdmin) {
 
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException(id));
+                .orElseThrow(
+                        () -> new UserNotFoundException(id)
+                );
+
+        checkAccess(
+                user,
+                currentEmail,
+                isAdmin
+        );
 
         return userMapper.toResponse(user);
     }
 
-    public void deleteUser(Long id) {
-
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException(id));
-
-        userRepository.delete(user);
-    }
-
     public UserResponse updateUser(
             Long id,
-            UpdateUserRequest request) {
+            UpdateUserRequest request,
+            String currentEmail,
+            boolean isAdmin) {
 
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException(id));
+                .orElseThrow(
+                        () -> new UserNotFoundException(id)
+                );
+
+        checkAccess(
+                user,
+                currentEmail,
+                isAdmin
+        );
 
         user.setFirstname(request.getFirstname());
         user.setLastname(request.getLastname());
         user.setEmail(request.getEmail());
-        user.setPassword(request.getPassword());
         user.setPhonenumber(request.getPhonenumber());
 
-        User updatedUser = userRepository.save(user);
+        user.setPassword(
+                passwordEncoder.encode(
+                        request.getPassword()
+                )
+        );
+
+        User updatedUser =
+                userRepository.save(user);
 
         return userMapper.toResponse(updatedUser);
+    }
+
+    public void deleteUser(
+            Long id,
+            String currentEmail,
+            boolean isAdmin) {
+
+        User user = userRepository.findById(id)
+                .orElseThrow(
+                        () -> new UserNotFoundException(id)
+                );
+
+        checkAccess(
+                user,
+                currentEmail,
+                isAdmin
+        );
+
+        userRepository.delete(user);
+    }
+
+    private void checkAccess(
+            User user,
+            String currentEmail,
+            boolean isAdmin) {
+
+        if (isAdmin) {
+            return;
+        }
+
+        if (!user.getEmail().equals(currentEmail)) {
+            throw new AccessDeniedException(
+                    "You do not have permission to access this user"
+            );
+        }
     }
 }

@@ -11,6 +11,7 @@ import ro.mihai.careerhub.entity.Job;
 import ro.mihai.careerhub.entity.JobApplication;
 import ro.mihai.careerhub.entity.User;
 import ro.mihai.careerhub.enums.ApplicationStatus;
+import ro.mihai.careerhub.exception.DuplicateJobApplicationException;
 import ro.mihai.careerhub.exception.InvalidApplicationStatusTransitionException;
 import ro.mihai.careerhub.exception.JobApplicationNotFoundException;
 import ro.mihai.careerhub.exception.JobNotFoundException;
@@ -41,21 +42,32 @@ public class JobApplicationService {
     }
 
     public JobApplicationResponse createApplication(
+            String userEmail,
             CreateJobApplicationRequest request) {
 
-        User user = userRepository.findById(request.getUserId())
+        User user = userRepository
+                .findByEmail(userEmail)
                 .orElseThrow(
-                        () -> new UserNotFoundException(
-                                request.getUserId()
-                        )
+                        () -> new UserNotFoundException(userEmail)
                 );
 
-        Job job = jobRepository.findById(request.getJobId())
+        Job job = jobRepository
+                .findById(request.getJobId())
                 .orElseThrow(
                         () -> new JobNotFoundException(
                                 request.getJobId()
                         )
                 );
+
+        if (jobApplicationRepository.existsByUserIdAndJobId(
+                user.getId(),
+                job.getId())) {
+
+            throw new DuplicateJobApplicationException(
+                    user.getId(),
+                    job.getId()
+            );
+        }
 
         JobApplication application = new JobApplication(
                 user,
@@ -66,7 +78,9 @@ public class JobApplicationService {
         JobApplication savedApplication =
                 jobApplicationRepository.save(application);
 
-        return jobApplicationMapper.toResponse(savedApplication);
+        return jobApplicationMapper.toResponse(
+                savedApplication
+        );
     }
 
     public List<JobApplicationResponse> getAllApplications() {
@@ -82,7 +96,9 @@ public class JobApplicationService {
         JobApplication application =
                 jobApplicationRepository.findById(id)
                         .orElseThrow(
-                                () -> new JobApplicationNotFoundException(id)
+                                () -> new JobApplicationNotFoundException(
+                                        id
+                                )
                         );
 
         return jobApplicationMapper.toResponse(application);
@@ -95,7 +111,9 @@ public class JobApplicationService {
         JobApplication application =
                 jobApplicationRepository.findById(id)
                         .orElseThrow(
-                                () -> new JobApplicationNotFoundException(id)
+                                () -> new JobApplicationNotFoundException(
+                                        id
+                                )
                         );
 
         ApplicationStatus currentStatus =
@@ -122,6 +140,32 @@ public class JobApplicationService {
         return jobApplicationMapper.toResponse(
                 updatedApplication
         );
+    }
+
+    public List<JobApplicationResponse> getApplicationsByUserId(
+            Long userId) {
+
+        if (!userRepository.existsById(userId)) {
+            throw new UserNotFoundException(userId);
+        }
+
+        return jobApplicationRepository.findByUserId(userId)
+                .stream()
+                .map(jobApplicationMapper::toResponse)
+                .toList();
+    }
+
+    public List<JobApplicationResponse> getApplicationsByJobId(
+            Long jobId) {
+
+        if (!jobRepository.existsById(jobId)) {
+            throw new JobNotFoundException(jobId);
+        }
+
+        return jobApplicationRepository.findByJobId(jobId)
+                .stream()
+                .map(jobApplicationMapper::toResponse)
+                .toList();
     }
 
     private boolean isValidStatusTransition(

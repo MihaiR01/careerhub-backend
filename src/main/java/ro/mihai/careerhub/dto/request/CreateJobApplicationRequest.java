@@ -9,19 +9,12 @@ import lombok.Setter;
 public class CreateJobApplicationRequest {
 
     @NotNull
-    private Long userId;
-
-    @NotNull
     private Long jobId;
 
     public CreateJobApplicationRequest() {
     }
 
-    public CreateJobApplicationRequest(
-            Long userId,
-            Long jobId) {
-
-        this.userId = userId;
+    public CreateJobApplicationRequest(Long jobId) {
         this.jobId = jobId;
     }
 }

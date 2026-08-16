@@ -4,13 +4,18 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+
 import lombok.Getter;
 import lombok.Setter;
+
+import ro.mihai.careerhub.enums.Role;
 
 @Entity
 @Getter
@@ -40,6 +45,10 @@ public class User {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdate;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Role role;
+
     public User() {
     }
 
@@ -55,10 +64,15 @@ public class User {
         this.email = email;
         this.password = password;
         this.phonenumber = phonenumber;
+        this.role = Role.USER;
     }
 
     @PrePersist
     protected void onCreate() {
         createdate = LocalDateTime.now();
+
+        if (role == null) {
+            role = Role.USER;
+        }
     }
 }

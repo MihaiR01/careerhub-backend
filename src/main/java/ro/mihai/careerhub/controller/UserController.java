@@ -1,11 +1,12 @@
 package ro.mihai.careerhub.controller;
 
-import jakarta.validation.Valid;
-
 import java.util.List;
+
+import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import ro.mihai.careerhub.dto.request.CreateUserRequest;
@@ -27,7 +28,8 @@ public class UserController {
     public ResponseEntity<UserResponse> createUser(
             @Valid @RequestBody CreateUserRequest request) {
 
-        UserResponse response = userService.createUser(request);
+        UserResponse response =
+                userService.createUser(request);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -44,29 +46,59 @@ public class UserController {
 
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUserById(
-            @PathVariable Long id) {
+            @PathVariable Long id,
+            Authentication authentication) {
 
-        return ResponseEntity.ok(
-                userService.getUserById(id)
-        );
-    }
+        UserResponse response =
+                userService.getUserById(
+                        id,
+                        authentication.getName(),
+                        isAdmin(authentication)
+                );
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
-
-        userService.deleteUser(id);
-
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<UserResponse> updateUser(
             @PathVariable Long id,
-            @Valid @RequestBody UpdateUserRequest request) {
+            @Valid @RequestBody UpdateUserRequest request,
+            Authentication authentication) {
 
         UserResponse response =
-                userService.updateUser(id, request);
+                userService.updateUser(
+                        id,
+                        request,
+                        authentication.getName(),
+                        isAdmin(authentication)
+                );
 
         return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        userService.deleteUser(
+                id,
+                authentication.getName(),
+                isAdmin(authentication)
+        );
+
+        return ResponseEntity.noContent().build();
+    }
+
+    private boolean isAdmin(
+            Authentication authentication) {
+
+        return authentication.getAuthorities()
+                .stream()
+                .anyMatch(
+                        authority ->
+                                authority.getAuthority()
+                                        .equals("ROLE_ADMIN")
+                );
     }
 }

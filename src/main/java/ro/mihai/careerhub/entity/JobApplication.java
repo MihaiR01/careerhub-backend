@@ -13,15 +13,26 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
-
 import ro.mihai.careerhub.enums.ApplicationStatus;
 
 @Entity
 @Getter
 @Setter
-@Table(name = "job_applications")
+@Table(
+        name = "job_applications",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_job_application_user_job",
+                        columnNames = {
+                                "user_id",
+                                "job_id"
+                        }
+                )
+        }
+)
 public class JobApplication {
 
     @Id

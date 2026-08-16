@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 import jakarta.validation.Valid;
 
+import org.springframework.security.core.Authentication;
+
 import ro.mihai.careerhub.dto.request.CreateJobApplicationRequest;
 import ro.mihai.careerhub.dto.request.UpdateApplicationStatusRequest;
 import ro.mihai.careerhub.dto.response.JobApplicationResponse;
@@ -34,9 +36,15 @@ public class JobApplicationController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public JobApplicationResponse createApplication(
+            Authentication authentication,
             @Valid @RequestBody CreateJobApplicationRequest request) {
 
-        return jobApplicationService.createApplication(request);
+        String userEmail = authentication.getName();
+
+        return jobApplicationService.createApplication(
+                userEmail,
+                request
+        );
     }
 
     @GetMapping
@@ -61,5 +69,19 @@ public class JobApplicationController {
                 id,
                 request
         );
+    }
+
+    @GetMapping("/user/{userId}")
+    public List<JobApplicationResponse> getApplicationsByUserId(
+            @PathVariable Long userId) {
+
+        return jobApplicationService.getApplicationsByUserId(userId);
+    }
+
+    @GetMapping("/job/{jobId}")
+    public List<JobApplicationResponse> getApplicationsByJobId(
+            @PathVariable Long jobId) {
+
+        return jobApplicationService.getApplicationsByJobId(jobId);
     }
 }
